@@ -1,0 +1,58 @@
+/* styles.css */
+.town-generator-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+  
+  .town-generator-controls {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .town-generator-size-buttons {
+    display: flex;
+    gap: 5px;
+  }
+  
+  .town-generator-canvas {
+    flex: 1;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 5px;
+    background-color: var(--background-primary);
+  }
+  
+  .town-generator-regenerate {
+    padding: 4px 8px;
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .town-generator-palette-select {
+    padding: 4px 8px;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    color: var(--text-normal);
+  }
+  
+  .town-generator-tooltip {
+    position: absolute;
+    padding: 5px 10px;
+    background-color: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    color: var(--text-normal);
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 100;
+    max-width: 200px;
+  }
