@@ -1,7 +1,7 @@
 import { Point } from '../geom/Point';
 import { Graph, Node } from '../geom/Graph';
-import { Model } from './Model';
-import { Patch } from './Patch';
+import { Model } from '../generator/Model';
+import { Patch } from '../generator/Patch';
 
 export class Topology {
     private model: Model;

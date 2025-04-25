@@ -1,11 +1,11 @@
-import { Model } from '../src/generator/Model';
+import { Model } from '../generator/Model';
 import { Palette } from './Palette';
-import { Ward } from '../src/generator/wards/Ward';
-import { Castle } from '../src/generator/wards/Castle';
-import { Cathedral } from '../src/generator/wards/Cathedral';
-import { Market } from '../src/generator/wards/Market';
-import { Polygon } from '../src/geom/Polygon';
-import { Point } from '../src/geom/Point';
+import { Ward } from '../generator/wards/Ward';
+import { Castle } from '../generator/wards/Castle';
+import { Cathedral } from '../generator/wards/Cathedral';
+import { Market } from '../generator/wards/Market';
+import { Polygon } from '../geom/Polygon';
+import { Point } from '../geom/Point';
 
 export class CityMap {
     public static palette: Palette = Palette.DEFAULT;
@@ -75,17 +75,21 @@ export class CityMap {
             // Update tooltip
             if (hoveredPatch && hoveredPatch.ward) {
                 const label = hoveredPatch.ward.getLabel();
-                if (label !== this.hoveredWard) {
+                if (label !== this.hoveredWard && this.tooltipEl) {
                     this.hoveredWard = label;
                     this.tooltipEl.textContent = label;
                 }
                 
-                this.tooltipEl.style.display = 'block';
-                this.tooltipEl.style.left = `${e.clientX + 10}px`;
-                this.tooltipEl.style.top = `${e.clientY + 10}px`;
+                if (this.tooltipEl) {
+                    this.tooltipEl.style.display = 'block';
+                    this.tooltipEl.style.left = `${e.clientX + 10}px`;
+                    this.tooltipEl.style.top = `${e.clientY + 10}px`;
+                }
             } else {
                 this.hoveredWard = null;
-                this.tooltipEl.style.display = 'none';
+                if (this.tooltipEl) {
+                    this.tooltipEl.style.display = 'none';
+                }
             }
         });
         

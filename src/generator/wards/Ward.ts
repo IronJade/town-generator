@@ -4,6 +4,7 @@ import { Model } from '../Model';
 import { Patch } from '../Patch';
 import { Random } from '../../utils/Random';
 import { GeomUtils } from '../../geom/GeomUtils';
+import { Cutter } from '../Cutter';
 
 export class Ward {
     // Street width constants

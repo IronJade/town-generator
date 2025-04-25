@@ -75,8 +75,8 @@ export class Polygon extends Array<Point> {
      * Get the centroid (center of mass) of the polygon
      */
     public get centroid(): Point {
-        const x = 0;
-        const y = 0;
+        let x = 0;
+        let y = 0;
         let a = 0;
         
         this.forEdge((v0, v1) => {
@@ -459,5 +459,48 @@ export class Polygon extends Array<Point> {
      */
     public static circle(r: number = 1.0): Polygon {
         return Polygon.regular(16, r);
+    }
+
+
+    /**
+     * Split the polygon at two vertices
+     */
+    public split(p1: Point, p2: Point): Polygon[] {
+        const i1 = this.indexOf(p1);
+        const i2 = this.indexOf(p2);
+        
+        if (i1 === -1 || i2 === -1) {
+            return [new Polygon(this)]; // Return copy if vertices not found
+        }
+        
+        return this.spliti(i1, i2);
+    }
+    
+    /**
+     * Split the polygon at two vertex indices
+     */
+    public spliti(i1: number, i2: number): Polygon[] {
+        if (i1 > i2) {
+            [i1, i2] = [i2, i1]; // Swap to ensure i1 <= i2
+        }
+    
+        return [
+            new Polygon(this.slice(i1, i2 + 1)),
+            new Polygon([...this.slice(i2), ...this.slice(0, i1 + 1)])
+        ];
+    }
+    
+    /**
+     * Interpolate a point within the polygon, returning barycentric coordinates
+     */
+    public interpolate(p: Point): number[] {
+        let sum = 0.0;
+        const weights = this.map(v => {
+            const d = 1 / Point.distance(v, p);
+            sum += d;
+            return d;
+        });
+        
+        return weights.map(d => d / sum);
     }
 }

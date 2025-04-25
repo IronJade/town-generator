@@ -1,9 +1,9 @@
-import { ItemView, WorkspaceLeaf, Menu } from 'obsidian';
+import { ItemView, WorkspaceLeaf, Menu, TFile } from 'obsidian';
 import TownGeneratorPlugin from '../main';
-import { CityMap } from '../../renderer/CityMap';
+import { CityMap } from '../renderer/CityMap';
 import { Model } from '../generator/Model';
 import { StateManager } from '../generator/StateManager';
-import { Palette } from '../../renderer/Palette';
+import { Palette } from '../renderer/Palette';
 
 export const VIEW_TYPE_TOWN_GENERATOR = 'town-generator-view';
 
@@ -12,7 +12,7 @@ export class TownGeneratorView extends ItemView {
 	private canvas: HTMLCanvasElement;
 	private cityMap: CityMap | null = null;
 	private model: Model | null = null;
-	private containerEl: HTMLDivElement;
+	public containerEl: HTMLDivElement;
 	private controlsEl: HTMLDivElement;
 
 	constructor(leaf: WorkspaceLeaf, plugin: TownGeneratorPlugin) {
@@ -230,9 +230,12 @@ export class TownGeneratorView extends ItemView {
 		
 		// Open the note
 		const file = this.app.vault.getAbstractFileByPath(notePath);
-		if (file) {
-			this.app.workspace.getLeaf().openFile(file);
-		}
+        if (file) {
+            // Check if it's a TFile before opening
+            if (file instanceof TFile) {
+                this.app.workspace.getLeaf().openFile(file);
+            }
+        }
 	}
 
 	private getTownTypeName(size: number): string {

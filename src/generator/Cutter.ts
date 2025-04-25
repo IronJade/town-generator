@@ -47,7 +47,7 @@ export class Cutter {
         gap: number = 0
     ): Polygon[] {
         // Use centroid if no center provided
-        if (!center) {
+        if (center === null) {
             center = poly.centroid;
         }
         
@@ -55,7 +55,8 @@ export class Cutter {
         
         // Create triangular sectors from center to each edge
         poly.forEdge((v0, v1) => {
-            const sector = new Polygon([center, v0, v1]);
+            // We can safely use center now as we've ensured it's not null
+            const sector = new Polygon([center as Point, v0, v1]);
             
             // Apply gap if needed
             if (gap > 0) {
@@ -78,7 +79,7 @@ export class Cutter {
         gap: number = 0
     ): Polygon[] {
         // Find best center point if not provided
-        if (!center) {
+        if (center === null) {
             const centroid = poly.centroid;
             center = poly.min(v => Point.distance(v, centroid));
         }
@@ -89,14 +90,15 @@ export class Cutter {
         // Create triangular sectors from center to each edge
         poly.forEdge((v0, v1) => {
             if (!v0.equals(center) && !v1.equals(center)) {
-                const sector = new Polygon([center, v0, v1]);
+                // We can safely use center now as we've ensured it's not null
+                const sector = new Polygon([center as Point, v0, v1]);
                 
                 // Apply gap if needed
                 if (gap > 0) {
                     const gapDistances = [
-                        poly.findEdge(center, v0) === -1 ? gap : 0, 
+                        poly.findEdge(center as Point, v0) === -1 ? gap : 0, 
                         0, 
-                        poly.findEdge(v1, center) === -1 ? gap : 0
+                        poly.findEdge(v1, center as Point) === -1 ? gap : 0
                     ];
                     const shrunk = sector.shrink(gapDistances);
                     sectors.push(shrunk);

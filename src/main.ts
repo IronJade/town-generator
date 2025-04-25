@@ -1,8 +1,8 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, View } from 'obsidian';
 import { TownGeneratorView, VIEW_TYPE_TOWN_GENERATOR } from './ui/TownView';
 import { TownGeneratorSettingsTab } from './ui/SettingsTab';
 import { Model } from './generator/Model';
-import { StateManager } from './src/generator/StateManager';
+import { StateManager } from './generator/StateManager';
 
 interface TownGeneratorSettings {
 	defaultSize: number;
@@ -31,7 +31,9 @@ export default class TownGeneratorPlugin extends Plugin {
 		// Register town generator view
 		this.registerView(
 			VIEW_TYPE_TOWN_GENERATOR,
-			(leaf) => new TownGeneratorView(leaf, this)
+			(leaf) => {
+				return new TownGeneratorView(leaf, this) as unknown as View;
+			}
 		);
 
 		// Add ribbon icon to generate a town
@@ -140,7 +142,8 @@ export default class TownGeneratorPlugin extends Plugin {
 	private refreshView() {
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_TOWN_GENERATOR);
 		if (leaves.length > 0) {
-			const view = leaves[0].view as TownGeneratorView;
+			// Use type assertion with unknown intermediate
+			const view = leaves[0].view as unknown as TownGeneratorView;
 			view.refresh();
 		}
 	}

@@ -307,7 +307,7 @@ export class Voronoi {
     /**
      * Relax the Voronoi diagram (Lloyd's algorithm)
      */
-    public static relax(voronoi: Voronoi, toRelax: Point[] = null): Voronoi {
+    public static relax(voronoi: Voronoi, toRelax: Point[] | null = null): Voronoi {
         const regions = voronoi.partitioning();
         
         // Copy points except frame points

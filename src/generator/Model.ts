@@ -4,7 +4,7 @@ import { Voronoi } from '../geom/Voronoi';
 import { Random } from '../utils/Random';
 import { Patch } from './Patch';
 import { CurtainWall } from './CurtainWall';
-import { Topology } from './Topology';
+import { Topology } from '../geom/Topology';
 import { Ward } from './wards/Ward';
 import { Castle } from './wards/Castle';
 import { Market } from './wards/Market';
@@ -220,7 +220,7 @@ export class Model {
             // Build street from gate to end
             const street = this.topology.buildPath(gate, end, this.topology.outer);
             if (street) {
-                this.streets.push(street);
+                this.streets.push(new Polygon(street));
 
                 // For city gates (not castle gates), create roads to outside
                 if (this.border.gates.includes(gate)) {
@@ -240,7 +240,7 @@ export class Model {
                     if (start) {
                         const road = this.topology.buildPath(start, gate, this.topology.inner);
                         if (road) {
-                            this.roads.push(road);
+                            this.roads.push(new Polygon(road));
                         }
                     }
                 }
@@ -331,7 +331,7 @@ export class Model {
 
             if (!attached) {
                 // Create new artery
-                this.arteries.push([seg.start, seg.end]);
+                this.arteries.push(new Polygon([seg.start, seg.end]));
             }
         }
     }

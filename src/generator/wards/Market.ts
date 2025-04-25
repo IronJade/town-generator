@@ -20,6 +20,7 @@ export class Market extends Ward {
         // Determine if we offset the feature from center
         const offset = statue || Random.bool(0.3);
         
+        // Initialize variables with correct typing
         let v0: Point | null = null;
         let v1: Point | null = null;
         
@@ -40,7 +41,7 @@ export class Market extends Ward {
         // Create the central object (statue or fountain)
         let object: Polygon;
         
-        if (statue && v0 && v1) {
+        if (statue && v0 !== null && v1 !== null) {
             // Rectangular statue
             object = Polygon.rect(1 + Random.float(), 1 + Random.float());
             
@@ -53,7 +54,7 @@ export class Market extends Ward {
         }
         
         // Position the object
-        if (offset && v0 && v1) {
+        if (offset && v0 !== null && v1 !== null) {
             // Offset toward one of the edges
             const gravity = GeomUtils.interpolate(v0, v1);
             const position = GeomUtils.interpolate(

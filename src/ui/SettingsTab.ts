@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import TownGeneratorPlugin from '../main';
-import { CityMap } from '../../renderer/CityMap';
+import { CityMap } from '../renderer/CityMap';
 
 export class TownGeneratorSettingsTab extends PluginSettingTab {
 	plugin: TownGeneratorPlugin;
