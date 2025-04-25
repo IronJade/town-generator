@@ -20,7 +20,7 @@ export class Market extends Ward {
         // Determine if we offset the feature from center
         const offset = statue || Random.bool(0.3);
         
-        // Initialize variables with correct typing
+        // Initialize variables with explicit types
         let v0: Point | null = null;
         let v1: Point | null = null;
         
@@ -45,8 +45,12 @@ export class Market extends Ward {
             // Rectangular statue
             object = Polygon.rect(1 + Random.float(), 1 + Random.float());
             
-            // Rotate to align with the edge
-            const angle = Math.atan2(v1.y - v0.y, v1.x - v0.x);
+            // Create temporary variables of known type to avoid TypeScript errors
+            const p0: Point = v0;
+            const p1: Point = v1;
+            
+            // Rotate to align with the edge using known safe points
+            const angle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
             object.rotate(angle);
         } else {
             // Circular fountain
@@ -55,8 +59,12 @@ export class Market extends Ward {
         
         // Position the object
         if (offset && v0 !== null && v1 !== null) {
+            // Create temporary variables of known type to avoid TypeScript errors
+            const p0: Point = v0;
+            const p1: Point = v1;
+            
             // Offset toward one of the edges
-            const gravity = GeomUtils.interpolate(v0, v1);
+            const gravity = GeomUtils.interpolate(p0, p1);
             const position = GeomUtils.interpolate(
                 this.patch.shape.centroid,
                 gravity,
