@@ -1,0 +1,36 @@
+{
+	"name": "town-generator",
+	"version": "1.0.0",
+	"description": "Generate procedural fantasy towns and cities for your worldbuilding and RPG campaigns.",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"version": "node version-bump.mjs && git add manifest.json versions.json"
+	},
+	"keywords": [
+		"obsidian",
+		"obsidian-plugin",
+		"town-generator",
+		"procedural-generation",
+		"rpg",
+		"worldbuilding"
+	],
+	"author": "",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/node": "^16.11.6",
+		"@typescript-eslint/eslint-plugin": "5.29.0",
+		"@typescript-eslint/parser": "5.29.0",
+		"builtin-modules": "3.3.0",
+		"esbuild": "0.17.3",
+		"obsidian": "latest",
+		"tslib": "2.4.0",
+		"typescript": "4.7.4"
+	},
+	"dependencies": {
+		"d3-delaunay": "^6.0.4",
+		"d3-voronoi": "^1.1.4",
+		"seedrandom": "^3.0.5"
+	}
+}

@@ -1,0 +1,10 @@
+{
+	"id": "town-generator",
+	"name": "Town Generator",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Generate procedural fantasy towns and cities for your worldbuilding and RPG campaigns.",
+	"author": "Converted from watabou's algorithm",
+	"authorUrl": "https://github.com/IronJade/town-generator",
+	"isDesktopOnly": false
+}
