@@ -183,7 +183,7 @@ export class Ward {
     }
 
     /**
-     * Create alley-style geometry for a ward
+     * Create alley-style geometry for a ward by recursively cutting the polygon
      */
     public static createAlleys(
         p: Polygon, 
@@ -193,10 +193,60 @@ export class Ward {
         emptyProb: number = 0.04, 
         split: boolean = true
     ): Polygon[] {
-        // TODO: Implementation of the createAlleys method
-        // This is a complex method that recursively cuts the polygon
-        // For now, we'll return a simple placeholder
-        return [p];
+        // Find the longest edge to cut
+        let vertex: Point | null = null;
+        let length = -1.0;
+        
+        p.forEdge((p0, p1) => {
+            const len = Point.distance(p0, p1);
+            if (len > length) {
+                length = len;
+                vertex = p0;
+            }
+        });
+        
+        if (!vertex) return [p];
+        
+        // Calculate parameters for the cut
+        const spread = 0.8 * gridChaos;
+        const ratio = (1 - spread) / 2 + Random.float() * spread;
+        
+        // Calculate angle variation based on grid chaos
+        // Less chaos for small blocks to keep buildings rectangular
+        const angleSpread = Math.PI / 6 * gridChaos * (p.square < minSq * 4 ? 0.0 : 1);
+        const angle = (Random.float() - 0.5) * angleSpread;
+        
+        // Cut the polygon
+        const halves = Cutter.bisect(p, vertex, ratio, angle, split ? this.ALLEY : 0.0);
+        
+        // Recursively process the halves
+        const buildings: Polygon[] = [];
+        
+        for (const half of halves) {
+            // Random size variation based on chaos parameter
+            const sizeVariation = Math.pow(2, 4 * sizeChaos * (Random.float() - 0.5));
+            
+            if (half.square < minSq * sizeVariation) {
+                // Block is small enough, so keep it if not empty
+                if (!Random.bool(emptyProb)) {
+                    buildings.push(half);
+                }
+            } else {
+                // Block is too large, subdivide it
+                const halfSplit = half.square > minSq / (Random.float() * Random.float());
+                const subBuildings = this.createAlleys(half, minSq, gridChaos, sizeChaos, emptyProb, halfSplit);
+                buildings.push(...subBuildings);
+            }
+        }
+        
+        return buildings;
+    }
+
+    /**
+     * Find the longest edge in a polygon
+     */
+    private static findLongestEdge(poly: Polygon): Point {
+        return poly.min(v => -poly.vector(v).length());
     }
 
     /**
@@ -207,8 +257,63 @@ export class Ward {
         minBlockSq: number, 
         fill: number
     ): Polygon[] {
-        // TODO: Implement createOrthoBuilding
-        // For now, return a simple placeholder
+        // Helper function to slice a polygon along one of its vectors
+        const slice = (poly: Polygon, c1: Point, c2: Point): Polygon[] => {
+            // Find the longest edge
+            const v0 = this.findLongestEdge(poly);
+            const v1 = poly.next(v0);
+            const v = v1.subtract(v0);
+            
+            // Calculate cut position
+            const ratio = 0.4 + Random.float() * 0.2;
+            const p1 = GeomUtils.interpolate(v0, v1, ratio);
+            
+            // Decide which direction to cut (parallel to c1 or c2)
+            const c = Math.abs(GeomUtils.scalar(v.x, v.y, c1.x, c1.y)) < 
+                      Math.abs(GeomUtils.scalar(v.x, v.y, c2.x, c2.y)) ? c1 : c2;
+            
+            // Cut the polygon
+            const halves = poly.cut(p1, p1.add(c));
+            
+            const buildings: Polygon[] = [];
+            
+            for (const half of halves) {
+                // Size variation with normal distribution
+                const sizeVariation = Math.pow(2, Random.normal() * 2 - 1);
+                
+                if (half.square < minBlockSq * sizeVariation) {
+                    // Block is small enough, keep it if random check passes
+                    if (Random.bool(fill)) {
+                        buildings.push(half);
+                    }
+                } else {
+                    // Block is too large, further subdivide
+                    buildings.push(...slice(half, c1, c2));
+                }
+            }
+            
+            return buildings;
+        };
+        
+        // If polygon is too small, return it as is
+        if (poly.square < minBlockSq) {
+            return [poly];
+        }
+        
+        // Get cutting directions
+        const c1 = poly.vector(this.findLongestEdge(poly));
+        const c2 = c1.rotate90();
+        
+        // Start slicing recursively
+        const maxAttempts = 10;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const blocks = slice(poly, c1, c2);
+            if (blocks.length > 0) {
+                return blocks;
+            }
+        }
+        
+        // Fallback if slicing fails
         return [poly];
     }
 }

@@ -13,11 +13,17 @@ export class CityMap {
     private model: Model;
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
+    private tooltipEl: HTMLDivElement | null = null;
+    private hoveredWard: string | null = null;
+    private showTooltips: boolean = true;
     
     constructor(model: Model, canvas: HTMLCanvasElement) {
         this.model = model;
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d')!;
+
+        // Add event listeners for tooltips
+        this.setupTooltips();
     }
     
     public static setPalette(name: string): void {
@@ -26,6 +32,96 @@ export class CityMap {
         }
     }
     
+    public setShowTooltips(show: boolean): void {
+        this.showTooltips = show;
+        if (!show && this.tooltipEl) {
+            this.tooltipEl.style.display = 'none';
+        }
+    }
+
+    private setupTooltips(): void {
+        // Create tooltip element if it doesn't exist
+        if (!this.tooltipEl) {
+            this.tooltipEl = document.createElement('div');
+            this.tooltipEl.className = 'town-generator-tooltip';
+            this.tooltipEl.style.display = 'none';
+            document.body.appendChild(this.tooltipEl);
+        }
+        
+        // Add mouse move handler
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (!this.showTooltips) return;
+            
+            const rect = this.canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Convert to model coordinates
+            const scale = this.getScale();
+            const modelX = (x - this.canvas.width / 2) / scale;
+            const modelY = (y - this.canvas.height / 2) / scale;
+            
+            // Find patch at coordinates
+            const mousePoint = new Point(modelX, modelY);
+            let hoveredPatch = null;
+            
+            for (const patch of this.model.patches) {
+                if (this.isPointInPolygon(mousePoint, patch.shape)) {
+                    hoveredPatch = patch;
+                    break;
+                }
+            }
+            
+            // Update tooltip
+            if (hoveredPatch && hoveredPatch.ward) {
+                const label = hoveredPatch.ward.getLabel();
+                if (label !== this.hoveredWard) {
+                    this.hoveredWard = label;
+                    this.tooltipEl.textContent = label;
+                }
+                
+                this.tooltipEl.style.display = 'block';
+                this.tooltipEl.style.left = `${e.clientX + 10}px`;
+                this.tooltipEl.style.top = `${e.clientY + 10}px`;
+            } else {
+                this.hoveredWard = null;
+                this.tooltipEl.style.display = 'none';
+            }
+        });
+        
+        // Hide tooltip when mouse leaves canvas
+        this.canvas.addEventListener('mouseleave', () => {
+            if (this.tooltipEl) {
+                this.tooltipEl.style.display = 'none';
+            }
+        });
+    }
+
+    private isPointInPolygon(point: Point, polygon: Polygon): boolean {
+        // Ray casting algorithm to determine if point is in polygon
+        let inside = false;
+        
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            const xi = polygon[i].x, yi = polygon[i].y;
+            const xj = polygon[j].x, yj = polygon[j].y;
+            
+            const intersect = ((yi > point.y) !== (yj > point.y)) &&
+                (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+                
+            if (intersect) inside = !inside;
+        }
+        
+        return inside;
+    }
+    
+    private getScale(): number {
+        const { width, height } = this.canvas;
+        return Math.min(
+            width / (this.model.cityRadius * 2.5),
+            height / (this.model.cityRadius * 2.5)
+        );
+    }
+
     public render(): void {
         const { width, height } = this.canvas;
         this.ctx.clearRect(0, 0, width, height);
