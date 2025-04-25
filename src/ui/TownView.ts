@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Menu, TFile } from 'obsidian';
+import { ItemView, WorkspaceLeaf, Menu, TFile, Notice } from 'obsidian';
 import TownGeneratorPlugin from '../main';
 import { CityMap } from '../renderer/CityMap';
 import { Model } from '../generator/Model';
@@ -119,34 +119,106 @@ export class TownGeneratorView extends ItemView {
 		});
 	}
 
-	public async renderTown() {
-		this.model = Model.instance;
-		
-		if (!this.model) {
-			console.error("No town model available");
-			return;
-		}
-		
-		// Adjust canvas size
-		const parentWidth = this.containerEl.clientWidth;
-		const parentHeight = Math.max(500, this.containerEl.clientHeight - this.controlsEl.clientHeight - 20);
-		this.canvas.width = parentWidth;
-		this.canvas.height = parentHeight;
-		
-		// Create city map and render
-		this.cityMap = new CityMap(this.model, this.canvas);
-		this.cityMap.render();
-		
-		// Update title to reflect town size
-		this.leaf.setViewState({
-			type: VIEW_TYPE_TOWN_GENERATOR,
-			state: { size: StateManager.size, seed: StateManager.seed }
-		});
-	}
+    public async renderTown() {
+        // Show loading indicator
+        this.showLoading(true);
+        
+        try {
+            // If no model exists yet, create one asynchronously
+            if (!Model.instance) {
+                // Use the async factory method instead of constructor
+                await Model.createAsync(StateManager.size, StateManager.seed);
+            }
+            
+            this.model = Model.instance;
+            
+            if (!this.model) {
+                console.error("No town model available");
+                this.showLoading(false);
+                return;
+            }
+            
+            // Adjust canvas size
+            const parentWidth = this.containerEl.clientWidth;
+            const parentHeight = Math.max(500, this.containerEl.clientHeight - this.controlsEl.clientHeight - 20);
+            this.canvas.width = parentWidth;
+            this.canvas.height = parentHeight;
+            
+            // Create city map and render
+            this.cityMap = new CityMap(this.model, this.canvas);
+            this.cityMap.render();
+            
+            // Update title to reflect town size
+            this.leaf.setViewState({
+                type: VIEW_TYPE_TOWN_GENERATOR,
+                state: { size: StateManager.size, seed: StateManager.seed }
+            });
+        } catch (error) {
+            console.error("Error rendering town:", error);
+            new Notice("Failed to generate town. Please try again.");
+        } finally {
+            // Hide loading indicator
+            this.showLoading(false);
+        }
+    }
 
-	public refresh() {
-		this.renderTown();
-	}
+    private showLoading(show: boolean) {
+        if (!this.loadingEl) {
+            this.loadingEl = this.containerEl.createDiv({ cls: 'town-generator-loading' });
+            this.loadingEl.innerHTML = `
+                <div class="town-generator-loading-spinner"></div>
+                <div class="town-generator-loading-text">Generating town...</div>
+            `;
+            
+            // Add styles if not already added
+            if (!document.getElementById('town-generator-loading-styles')) {
+                const styleEl = document.createElement('style');
+                styleEl.id = 'town-generator-loading-styles';
+                styleEl.textContent = `
+                    .town-generator-loading {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background-color: rgba(var(--background-primary-rgb), 0.7);
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 100;
+                    }
+                    .town-generator-loading-spinner {
+                        width: 40px;
+                        height: 40px;
+                        border: 4px solid var(--text-faint);
+                        border-top: 4px solid var(--interactive-accent);
+                        border-radius: 50%;
+                        animation: town-generator-spin 1s linear infinite;
+                    }
+                    .town-generator-loading-text {
+                        margin-top: 10px;
+                        color: var(--text-normal);
+                    }
+                    @keyframes town-generator-spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                `;
+                document.head.appendChild(styleEl);
+            }
+        }
+        
+        this.loadingEl.style.display = show ? 'flex' : 'none';
+    }
+    
+    // Add the loading element property
+    private loadingEl: HTMLElement | null = null;
+    
+    // Make refresh async
+    public async refresh() {
+        await this.renderTown();
+    }
 
 	private showContextMenu(event: MouseEvent) {
 		const menu = new Menu();

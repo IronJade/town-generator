@@ -60,7 +60,24 @@ export class Model {
     public roads: Array<Street> = [];
 
     constructor(nPatches: number = -1, seed: number = -1) {
-        // Set seed if provided, otherwise generate a new one
+        // For backward compatibility, create synchronously if params are provided
+        if (nPatches !== -1 || seed !== -1) {
+            this.initSync(nPatches, seed);
+        }
+        // Otherwise just initialize basic properties
+        else {
+            this.streets = [];
+            this.roads = [];
+            this.patches = [];
+            this.inner = [];
+            this.arteries = [];
+            this.gates = [];
+        }
+    }
+
+    // Helper method for backward compatibility
+    private initSync(nPatches: number, seed: number): void {
+        // Original constructor logic
         if (seed > 0) {
             Random.reset(seed);
         } else {
@@ -70,17 +87,15 @@ export class Model {
         
         this.nPatches = nPatches !== -1 ? nPatches : 15;
         StateManager.size = this.nPatches;
-
-        // Configure random features (50% chance each)
+    
         this.plazaNeeded = Random.bool();
         this.citadelNeeded = Random.bool();
         this.wallsNeeded = Random.bool();
-
-        // Try to build the town, retrying if there's a failure
+    
         let success = false;
         let attempts = 0;
         const MAX_ATTEMPTS = 5;
-
+    
         while (!success && attempts < MAX_ATTEMPTS) {
             try {
                 this.build();
@@ -88,14 +103,86 @@ export class Model {
                 Model.instance = this;
             } catch (e) {
                 console.error("Error building town:", e);
-                Random.reset(); // Generate new random seed
+                Random.reset();
                 StateManager.seed = Random.getSeed();
                 attempts++;
             }
         }
-
+    
         if (!success) {
             throw new Error("Failed to generate town after multiple attempts");
+        }
+    }
+    
+    // Create async versions of heavy computations
+    private async buildPatchesAsync(): Promise<void> {
+        // Same logic as buildPatches but with yield points for UI
+        // Generate initial points with some variation
+        const sa = Random.float() * 2 * Math.PI;
+        const points: Point[] = [];
+        
+        for (let i = 0; i < this.nPatches * 8; i++) {
+            const a = sa + Math.sqrt(i) * 5;
+            const r = (i === 0) ? 0 : 10 + i * (2 + Random.float());
+            points.push(new Point(Math.cos(a) * r, Math.sin(a) * r));
+            
+            // Yield every 20 points to keep UI responsive
+            if (i % 20 === 0 && i > 0) {
+                await new Promise(r => setTimeout(r, 0));
+            }
+        }
+        
+        // Create Voronoi diagram from points
+        let voronoi = Voronoi.build(points);
+    
+        // Relax central districts for nicer shapes
+        for (let i = 0; i < 3; i++) {
+            const toRelax = [voronoi.points[0], voronoi.points[1], voronoi.points[2], voronoi.points[this.nPatches]];
+            voronoi = Voronoi.relax(voronoi, toRelax);
+            await new Promise(r => setTimeout(r, 0)); // Yield after each relaxation
+        }
+    
+        // Sort points by distance from center
+        voronoi.points.sort((p1, p2) => 
+            p1.length() - p2.length()
+        );
+        
+        const regions = voronoi.partitioning();
+        await new Promise(r => setTimeout(r, 0)); // Yield after partitioning
+    
+        this.patches = [];
+        this.inner = [];
+    
+        let count = 0;
+        for (const r of regions) {
+            const patch = Patch.fromRegion(r);
+            this.patches.push(patch);
+    
+            if (count === 0) {
+                // First patch is center
+                this.center = patch.shape.min((p: Point) => p.length());
+                if (this.plazaNeeded) {
+                    this.plaza = patch;
+                }
+            } else if (count === this.nPatches && this.citadelNeeded) {
+                // Last patch (at index == nPatches) is citadel
+                this.citadel = patch;
+                this.citadel.withinCity = true;
+            }
+    
+            if (count < this.nPatches) {
+                // Inner city wards
+                patch.withinCity = true;
+                patch.withinWalls = this.wallsNeeded;
+                this.inner.push(patch);
+            }
+    
+            count++;
+            
+            // Yield every 10 patches
+            if (count % 10 === 0) {
+                await new Promise(r => setTimeout(r, 0));
+            }
         }
     }
 
@@ -555,5 +642,86 @@ export class Model {
         } while (index !== 0);
 
         return result;
+    }
+
+    public static async createAsync(nPatches: number = -1, seed: number = -1): Promise<Model> {
+        // Create the model instance
+        const model = new Model();
+        
+        // Set or generate seed
+        if (seed > 0) {
+            Random.reset(seed);
+        } else {
+            Random.reset();
+            StateManager.seed = Random.getSeed();
+        }
+        
+        // Store parameters
+        model.nPatches = nPatches !== -1 ? nPatches : 15;
+        StateManager.size = model.nPatches;
+    
+        // Configure random features (50% chance each)
+        model.plazaNeeded = Random.bool();
+        model.citadelNeeded = Random.bool();
+        model.wallsNeeded = Random.bool();
+    
+        // Build the town asynchronously
+        let success = false;
+        let attempts = 0;
+        const MAX_ATTEMPTS = 5;
+    
+        while (!success && attempts < MAX_ATTEMPTS) {
+            try {
+                // Use setTimeout to ensure UI responsiveness
+                await new Promise<void>(resolve => {
+                    setTimeout(async () => {
+                        // Initialize arrays
+                        model.streets = [];
+                        model.roads = [];
+                        model.patches = [];
+                        model.inner = [];
+                        model.arteries = [];
+                        model.gates = [];
+                        
+                        // Build steps with yield points to prevent freezing
+                        await model.buildPatchesAsync();
+                        await new Promise(r => setTimeout(r, 0)); // Yield to UI
+                        
+                        model.optimizeJunctions();
+                        await new Promise(r => setTimeout(r, 0)); // Yield to UI
+                        
+                        model.buildWalls();
+                        await new Promise(r => setTimeout(r, 0)); // Yield to UI
+                        
+                        model.buildStreets();
+                        await new Promise(r => setTimeout(r, 0)); // Yield to UI
+                        
+                        model.createWards();
+                        await new Promise(r => setTimeout(r, 0)); // Yield to UI
+                        
+                        model.buildGeometry();
+                        
+                        success = true;
+                        resolve();
+                    }, 0);
+                });
+                
+                if (success) {
+                    Model.instance = model;
+                }
+            } catch (e) {
+                console.error("Error building town:", e);
+                Random.reset(); // Generate new random seed
+                StateManager.seed = Random.getSeed();
+                attempts++;
+                await new Promise(r => setTimeout(r, 100)); // Small delay before retrying
+            }
+        }
+    
+        if (!success) {
+            throw new Error("Failed to generate town after multiple attempts");
+        }
+        
+        return model;
     }
 }

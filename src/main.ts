@@ -67,32 +67,32 @@ export default class TownGeneratorPlugin extends Plugin {
 		this.addCommand({
 			id: 'generate-small-town',
 			name: 'Generate Small Town',
-			callback: () => {
-				this.generateTownWithSize(6 + Math.floor(Math.random() * 4)); // 6-9
+			callback: async () => {
+				await this.generateTownWithSize(6 + Math.floor(Math.random() * 4)); // 6-9
 			}
 		});
-
+		
 		this.addCommand({
 			id: 'generate-large-town',
 			name: 'Generate Large Town',
-			callback: () => {
-				this.generateTownWithSize(10 + Math.floor(Math.random() * 5)); // 10-14
+			callback: async () => {
+				await this.generateTownWithSize(10 + Math.floor(Math.random() * 5)); // 10-14
 			}
 		});
-
+		
 		this.addCommand({
 			id: 'generate-small-city',
 			name: 'Generate Small City',
-			callback: () => {
-				this.generateTownWithSize(15 + Math.floor(Math.random() * 9)); // 15-23
+			callback: async () => {
+				await this.generateTownWithSize(15 + Math.floor(Math.random() * 9)); // 15-23
 			}
 		});
-
+		
 		this.addCommand({
 			id: 'generate-large-city',
 			name: 'Generate Large City',
-			callback: () => {
-				this.generateTownWithSize(24 + Math.floor(Math.random() * 16)); // 24-39
+			callback: async () => {
+				await this.generateTownWithSize(24 + Math.floor(Math.random() * 16)); // 24-39
 			}
 		});
 
@@ -116,6 +116,9 @@ export default class TownGeneratorPlugin extends Plugin {
 	private async activateTownGeneratorView() {
 		const { workspace } = this.app;
 		
+		// Show loading notice
+		new Notice("Generating town...");
+		
 		// Check if view is already open
 		let leaf = workspace.getLeavesOfType(VIEW_TYPE_TOWN_GENERATOR)[0];
 		
@@ -131,20 +134,27 @@ export default class TownGeneratorPlugin extends Plugin {
 		// Reveal and focus the leaf
 		workspace.revealLeaf(leaf);
 	}
-
-	private generateTownWithSize(size: number) {
+	
+	private async generateTownWithSize(size: number) {
 		StateManager.size = size;
 		StateManager.seed = -1; // Generate new seed
-		new Model(size, StateManager.seed);
-		this.activateTownGeneratorView();
+		
+		// Use async creation instead of constructor
+		try {
+			await Model.createAsync(size);
+			await this.activateTownGeneratorView();
+		} catch (error) {
+			console.error("Failed to generate town:", error);
+			new Notice("Failed to generate town. Please try again.");
+		}
 	}
-
-	private refreshView() {
+	
+	private async refreshView() {
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_TOWN_GENERATOR);
 		if (leaves.length > 0) {
 			// Use type assertion with unknown intermediate
 			const view = leaves[0].view as unknown as TownGeneratorView;
-			view.refresh();
+			await view.refresh();
 		}
 	}
 }
